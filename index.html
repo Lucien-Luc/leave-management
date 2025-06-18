@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR Leave Management System</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-spinner"></div>
+        <p>Loading HR System...</p>
+    </div>
+
+    <!-- Login Screen -->
+    <div id="login-screen" class="login-screen hidden">
+        <div class="login-container">
+            <div class="logo-container">
+                <div class="logo-placeholder">
+                    <i class="fas fa-building"></i>
+                    <h1>HR Leave Manager</h1>
+                </div>
+            </div>
+            <div class="login-form">
+                <h2>Welcome Back</h2>
+                <p>Sign in to access your leave management system</p>
+                <button id="google-signin-btn" class="google-signin-btn">
+                    <i class="fab fa-google"></i>
+                    Sign in with Google
+                </button>
+                <div class="demo-accounts">
+                    <p>Demo Accounts:</p>
+                    <button class="demo-btn" data-role="hr">Login as HR</button>
+                    <button class="demo-btn" data-role="employee">Login as Employee</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Application -->
+    <div id="main-app" class="main-app hidden">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-left">
+                <div class="logo">
+                    <i class="fas fa-building"></i>
+                    <span>HR Leave Manager</span>
+                </div>
+            </div>
+            <div class="header-center">
+                <nav class="main-nav">
+                    <button class="nav-btn active" data-view="dashboard">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </button>
+                    <button class="nav-btn" data-view="requests">
+                        <i class="fas fa-calendar-plus"></i>
+                        <span>Leave Requests</span>
+                    </button>
+                    <button class="nav-btn" data-view="calendar">
+                        <i class="fas fa-calendar"></i>
+                        <span>Calendar</span>
+                    </button>
+                    <button class="nav-btn" data-view="reports" id="reports-nav" style="display: none;">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Reports</span>
+                    </button>
+                </nav>
+            </div>
+            <div class="header-right">
+                <button class="header-btn" id="notifications-btn">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge" id="notification-count">0</span>
+                </button>
+                <div class="user-menu">
+                    <button class="user-btn" id="user-menu-btn">
+                        <img src="https://via.placeholder.com/32" alt="User" class="user-avatar" id="user-avatar">
+                        <span id="user-name">User</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="user-dropdown" id="user-dropdown">
+                        <div class="user-info">
+                            <span id="user-email">user@company.com</span>
+                            <span class="user-role" id="user-role">Employee</span>
+                        </div>
+                        <hr>
+                        <button class="dropdown-item">
+                            <i class="fas fa-user"></i>
+                            Profile Settings
+                        </button>
+                        <button class="dropdown-item" id="logout-btn">
+                            <i class="fas fa-sign-out-alt"></i>
+                            Logout
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Dashboard View -->
+            <div id="dashboard-view" class="view active">
+                <div class="dashboard-header">
+                    <h1>Dashboard</h1>
+                    <div class="quick-actions">
+                        <button class="btn btn-primary" id="quick-request-btn">
+                            <i class="fas fa-plus"></i>
+                            Request Leave
+                        </button>
+                    </div>
+                </div>
+
+                <div class="dashboard-stats">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="available-days">0</h3>
+                            <p>Available Days</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-calendar-times"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="used-days">0</h3>
+                            <p>Used Days</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="pending-requests">0</h3>
+                            <p>Pending Requests</p>
+                        </div>
+                    </div>
+                    <div class="stat-card" id="team-stat" style="display: none;">
+                        <div class="stat-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="team-requests">0</h3>
+                            <p>Team Requests</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-content">
+                    <div class="dashboard-left">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>Recent Requests</h3>
+                                <button class="btn btn-text" data-view="requests">View All</button>
+                            </div>
+                            <div class="card-body">
+                                <div id="recent-requests" class="requests-list">
+                                    <div class="empty-state">
+                                        <i class="fas fa-calendar-alt"></i>
+                                        <p>No recent requests</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dashboard-right">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>Upcoming Leave</h3>
+                            </div>
+                            <div class="card-body">
+                                <div id="upcoming-leave" class="leave-timeline">
+                                    <div class="empty-state">
+                                        <i class="fas fa-calendar"></i>
+                                        <p>No upcoming leave</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Leave Requests View -->
+            <div id="requests-view" class="view">
+                <div class="requests-header">
+                    <h1>Leave Requests</h1>
+                    <div class="requests-actions">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" placeholder="Search requests..." id="search-requests">
+                        </div>
+                        <select id="filter-status" class="filter-select">
+                            <option value="">All Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="approved">Approved</option>
+                            <option value="rejected">Rejected</option>
+                        </select>
+                        <button class="btn btn-primary" id="new-request-btn">
+                            <i class="fas fa-plus"></i>
+                            New Request
+                        </button>
+                    </div>
+                </div>
+
+                <div class="requests-content">
+                    <div class="requests-table-container">
+                        <table class="requests-table">
+                            <thead>
+                                <tr>
+                                    <th>Employee</th>
+                                    <th>Leave Type</th>
+                                    <th>Start Date</th>
+                                    <th>End Date</th>
+                                    <th>Days</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="requests-table-body">
+                                <tr class="empty-row">
+                                    <td colspan="7">
+                                        <div class="empty-state">
+                                            <i class="fas fa-calendar-plus"></i>
+                                            <p>No leave requests found</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Calendar View -->
+            <div id="calendar-view" class="view">
+                <div class="calendar-header">
+                    <h1>Leave Calendar</h1>
+                    <div class="calendar-controls">
+                        <button class="btn btn-secondary" id="prev-month">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <span id="current-month-year" class="month-year">June 2025</span>
+                        <button class="btn btn-secondary" id="next-month">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                        <button class="btn btn-primary" id="today-btn">Today</button>
+                    </div>
+                </div>
+
+                <div class="calendar-content">
+                    <div class="calendar-legend">
+                        <div class="legend-item">
+                            <div class="legend-color approved"></div>
+                            <span>Approved Leave</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color pending"></div>
+                            <span>Pending Leave</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color conflict"></div>
+                            <span>Conflicts</span>
+                        </div>
+                    </div>
+                    
+                    <div class="calendar-grid" id="calendar-grid">
+                        <!-- Calendar will be generated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reports View (HR Only) -->
+            <div id="reports-view" class="view">
+                <div class="reports-header">
+                    <h1>Reports & Analytics</h1>
+                    <div class="report-filters">
+                        <select id="report-period" class="filter-select">
+                            <option value="month">This Month</option>
+                            <option value="quarter">This Quarter</option>
+                            <option value="year">This Year</option>
+                        </select>
+                        <button class="btn btn-secondary" id="export-report">
+                            <i class="fas fa-download"></i>
+                            Export
+                        </button>
+                    </div>
+                </div>
+
+                <div class="reports-content">
+                    <div class="report-cards">
+                        <div class="report-card">
+                            <h3>Leave Utilization</h3>
+                            <div class="chart-placeholder" id="utilization-chart">
+                                <i class="fas fa-chart-pie"></i>
+                                <p>Chart will be displayed here</p>
+                            </div>
+                        </div>
+                        <div class="report-card">
+                            <h3>Monthly Trends</h3>
+                            <div class="chart-placeholder" id="trends-chart">
+                                <i class="fas fa-chart-line"></i>
+                                <p>Chart will be displayed here</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <!-- New Leave Request Modal -->
+    <div id="leave-request-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>New Leave Request</h3>
+                <button class="modal-close" data-modal="leave-request-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="leave-request-form">
+                    <div class="form-group">
+                        <label for="leave-type">Leave Type</label>
+                        <select id="leave-type" required>
+                            <option value="">Select leave type</option>
+                            <option value="vacation">Vacation</option>
+                            <option value="sick">Sick Leave</option>
+                            <option value="personal">Personal</option>
+                            <option value="maternity">Maternity/Paternity</option>
+                            <option value="emergency">Emergency</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="start-date">Start Date</label>
+                            <input type="date" id="start-date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="end-date">End Date</label>
+                            <input type="date" id="end-date" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="leave-reason">Reason (Optional)</label>
+                        <textarea id="leave-reason" rows="3" placeholder="Briefly describe the reason for your leave..."></textarea>
+                    </div>
+                    <div class="smart-suggestions" id="smart-suggestions" style="display: none;">
+                        <h4>Smart Scheduling Suggestions</h4>
+                        <div id="suggestions-list"></div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" data-modal="leave-request-modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Submit Request</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Request Details Modal -->
+    <div id="request-details-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Leave Request Details</h3>
+                <button class="modal-close" data-modal="request-details-modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="request-details-content">
+                <!-- Content will be populated dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifications Panel -->
+    <div id="notifications-panel" class="notifications-panel">
+        <div class="notifications-header">
+            <h3>Notifications</h3>
+            <button id="mark-all-read" class="btn btn-text">Mark all as read</button>
+        </div>
+        <div class="notifications-content" id="notifications-content">
+            <div class="empty-state">
+                <i class="fas fa-bell"></i>
+                <p>No notifications</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Chatbot -->
+    <div id="chatbot-container" class="chatbot-container">
+        <div class="chatbot-toggle" id="chatbot-toggle">
+            <i class="fas fa-robot"></i>
+        </div>
+        <div class="chatbot-panel" id="chatbot-panel">
+            <div class="chatbot-header">
+                <h4>AI Assistant</h4>
+                <button class="chatbot-minimize" id="chatbot-minimize">
+                    <i class="fas fa-minus"></i>
+                </button>
+            </div>
+            <div class="chatbot-messages" id="chatbot-messages">
+                <div class="bot-message">
+                    <i class="fas fa-robot"></i>
+                    <div class="message-content">
+                        <p>Hello! I'm your HR assistant. I can help you with leave policies, balance inquiries, and general questions. How can I assist you today?</p>
+                    </div>
+                </div>
+            </div>
+            <div class="chatbot-input">
+                <input type="text" id="chatbot-input" placeholder="Ask me about leave policies...">
+                <button id="chatbot-send">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+    <!-- Application Scripts -->
+    <script src="utils.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="ai-chatbot.js"></script>
+    <script src="leave-manager.js"></script>
+    <script src="calendar.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
