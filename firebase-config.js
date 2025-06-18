@@ -549,6 +549,71 @@ class FirestoreService {
                 callback(notifications);
             });
     }
+
+    // HR-specific functions
+    async getHRUser() {
+        try {
+            const snapshot = await db.collection(this.collections.users)
+                .where('role', '==', 'hr')
+                .limit(1)
+                .get();
+            return snapshot.empty ? null : { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
+        } catch (error) {
+            console.error('Error getting HR user:', error);
+            return null;
+        }
+    }
+
+    async createEmployeeByHR(employeeData) {
+        try {
+            const userData = {
+                uid: this.generateUserId(),
+                email: employeeData.email,
+                displayName: employeeData.displayName,
+                role: USER_ROLES.EMPLOYEE,
+                status: 'approved',
+                department: employeeData.department || 'General',
+                position: employeeData.position || '',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                createdBy: 'hr'
+            };
+            
+            await this.createUser(userData);
+            
+            return userData;
+        } catch (error) {
+            console.error('Error creating employee:', error);
+            throw error;
+        }
+    }
+
+    async deleteEmployee(uid) {
+        try {
+            await this.updateUser(uid, { 
+                isActive: false,
+                deletedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            const pendingRequests = await this.getLeaveRequests({ 
+                userId: uid, 
+                status: 'pending' 
+            });
+            
+            for (const request of pendingRequests) {
+                await this.updateLeaveRequest(request.id, { 
+                    status: 'cancelled',
+                    cancelReason: 'Employee account deactivated'
+                });
+            }
+        } catch (error) {
+            console.error('Error deleting employee:', error);
+            throw error;
+        }
+    }
+
+    generateUserId() {
+        return 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    }
 }
 
 // Create global instance
@@ -572,11 +637,16 @@ window.FirebaseConfig = {
     auth,
     db,
     firestoreService,
-    signInWithGoogle,
-    signInWithDemo,
+    signInWithMicrosoft,
+    signUpAsHR,
+    signInAsHR,
+    signUpAsEmployee,
+    signInAsEmployee,
     signOut,
     getCurrentUser,
-    currentUser,
-    userRole,
-    demoUsers
+    getCurrentUserRole,
+    checkExistingHR,
+    createUserProfile,
+    USER_ROLES,
+    COMPANY_DOMAIN
 };

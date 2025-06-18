@@ -25,16 +25,131 @@
                 </div>
             </div>
             <div class="login-form">
-                <h2>Welcome Back</h2>
-                <p>Sign in to access your leave management system</p>
-                <button id="google-signin-btn" class="google-signin-btn">
-                    <i class="fab fa-google"></i>
-                    Sign in with Google
-                </button>
-                <div class="demo-accounts">
-                    <p>Demo Accounts:</p>
-                    <button class="demo-btn" data-role="hr">Login as HR</button>
-                    <button class="demo-btn" data-role="employee">Login as Employee</button>
+                <h2>Welcome to HR Leave Manager</h2>
+                <p>Choose your access level to continue</p>
+                
+                <!-- Role Selection -->
+                <div class="role-selection">
+                    <button id="hr-login-btn" class="role-btn hr-btn">
+                        <i class="fas fa-user-tie"></i>
+                        <span>HR Login</span>
+                        <small>Human Resources Manager</small>
+                    </button>
+                    <button id="employee-login-btn" class="role-btn employee-btn">
+                        <i class="fas fa-user"></i>
+                        <span>Employee Login</span>
+                        <small>Employee Access</small>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- HR Login Modal -->
+            <div id="hr-login-modal" class="auth-modal hidden">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>HR Login</h3>
+                        <button class="close-modal" data-modal="hr-login-modal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="auth-tabs">
+                            <button class="tab-btn active" data-tab="hr-signin">Sign In</button>
+                            <button class="tab-btn" data-tab="hr-signup">Create HR Account</button>
+                        </div>
+                        
+                        <!-- HR Sign In -->
+                        <div id="hr-signin" class="tab-content active">
+                            <form id="hr-signin-form">
+                                <div class="form-group">
+                                    <label for="hr-email">Email Address</label>
+                                    <input type="email" id="hr-email" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="hr-password">Password</label>
+                                    <input type="password" id="hr-password" required>
+                                </div>
+                                <button type="submit" class="submit-btn">Sign In as HR</button>
+                            </form>
+                        </div>
+                        
+                        <!-- HR Sign Up -->
+                        <div id="hr-signup" class="tab-content">
+                            <form id="hr-signup-form">
+                                <div class="form-group">
+                                    <label for="hr-signup-name">Full Name</label>
+                                    <input type="text" id="hr-signup-name" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="hr-signup-email">Email Address</label>
+                                    <input type="email" id="hr-signup-email" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="hr-signup-password">Password</label>
+                                    <input type="password" id="hr-signup-password" required minlength="6">
+                                </div>
+                                <div class="form-group">
+                                    <label for="hr-signup-confirm">Confirm Password</label>
+                                    <input type="password" id="hr-signup-confirm" required minlength="6">
+                                </div>
+                                <button type="submit" class="submit-btn">Create HR Account</button>
+                                <p class="note">Note: Only one HR account is allowed per system.</p>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Employee Login Modal -->
+            <div id="employee-login-modal" class="auth-modal hidden">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Employee Login</h3>
+                        <button class="close-modal" data-modal="employee-login-modal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="auth-tabs">
+                            <button class="tab-btn active" data-tab="employee-signin">Sign In</button>
+                            <button class="tab-btn" data-tab="employee-signup">Create Account</button>
+                        </div>
+                        
+                        <!-- Employee Sign In -->
+                        <div id="employee-signin" class="tab-content active">
+                            <form id="employee-signin-form">
+                                <div class="form-group">
+                                    <label for="employee-email">Email Address</label>
+                                    <input type="email" id="employee-email" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="employee-password">Password</label>
+                                    <input type="password" id="employee-password" required>
+                                </div>
+                                <button type="submit" class="submit-btn">Sign In</button>
+                            </form>
+                        </div>
+                        
+                        <!-- Employee Sign Up -->
+                        <div id="employee-signup" class="tab-content">
+                            <form id="employee-signup-form">
+                                <div class="form-group">
+                                    <label for="employee-signup-name">Full Name</label>
+                                    <input type="text" id="employee-signup-name" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="employee-signup-email">Email Address</label>
+                                    <input type="email" id="employee-signup-email" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="employee-signup-password">Password</label>
+                                    <input type="password" id="employee-signup-password" required minlength="6">
+                                </div>
+                                <div class="form-group">
+                                    <label for="employee-signup-confirm">Confirm Password</label>
+                                    <input type="password" id="employee-signup-confirm" required minlength="6">
+                                </div>
+                                <button type="submit" class="submit-btn">Create Account</button>
+                                <p class="note">Accounts with @bpn.rw email addresses are automatically approved.</p>
+                            </form>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
