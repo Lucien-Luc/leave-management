@@ -12,12 +12,30 @@ const firebaseConfig = {
     measurementId: "G-QRH3R4MTEC"
 };
 
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
+// Initialize Firebase with proper configuration
+let app;
+try {
+    app = firebase.initializeApp(firebaseConfig);
+    console.log('Firebase initialized successfully');
+} catch (error) {
+    console.error('Firebase initialization error:', error);
+}
 
-// Initialize Firebase services
-const auth = firebase.auth();
-const db = firebase.firestore();
+// Initialize Firebase services with error handling
+let auth, db;
+try {
+    auth = firebase.auth();
+    db = firebase.firestore();
+    
+    // Configure Firestore settings for better performance
+    db.settings({
+        cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED
+    });
+    
+    console.log('Firebase services initialized');
+} catch (error) {
+    console.error('Firebase services initialization error:', error);
+}
 
 // Authentication state management
 let currentUser = null;
@@ -58,7 +76,13 @@ async function signInWithMicrosoftOutlook() {
         }
         
         // Check if user exists in our system
-        let userData = await firestoreService.getUser(user.uid);
+        let userData;
+        try {
+            userData = await firestoreService.getUser(user.uid);
+        } catch (error) {
+            console.log('User not found, will create new profile');
+            userData = null;
+        }
         
         if (!userData) {
             // Create new user profile - determine role based on email domain
@@ -66,8 +90,13 @@ async function signInWithMicrosoftOutlook() {
             const defaultRole = isCompanyEmail ? USER_ROLES.EMPLOYEE : USER_ROLES.EMPLOYEE;
             const status = isCompanyEmail ? 'approved' : 'pending';
             
-            await createUserProfile(user, defaultRole, status, 'microsoft');
-            userData = await firestoreService.getUser(user.uid);
+            try {
+                await createUserProfile(user, defaultRole, status, 'microsoft');
+                userData = await firestoreService.getUser(user.uid);
+            } catch (createError) {
+                console.error('Error creating user profile:', createError);
+                throw new Error('Failed to create user profile. Please try again.');
+            }
         }
         
         return { user, userData };
@@ -233,6 +262,10 @@ class FirestoreService {
 
     // User operations
     async createUser(userData) {
+        if (!auth.currentUser) {
+            throw new Error('User must be authenticated to create profile');
+        }
+        
         try {
             const userDoc = {
                 ...userData,
