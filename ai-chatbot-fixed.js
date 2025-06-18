@@ -1,5 +1,5 @@
-// AI Chatbot functionality using Hugging Face Inference API
-// Provides intelligent assistance for HR leave management queries using free AI models
+// AI Chatbot functionality using OpenAI API
+// Provides intelligent assistance for HR leave management queries
 
 class AIChatbot {
     constructor() {
@@ -189,93 +189,6 @@ class AIChatbot {
         return context;
     }
 
-    buildPrompt(userMessage, context) {
-        return `You are an intelligent HR assistant for a company's leave management system. 
-        
-Context:
-- User role: ${context.userRole}
-- Current date: ${context.currentDate}
-- Company leave policies: ${JSON.stringify(context.companyPolicies, null, 2)}
-${context.leaveBalance ? `- User's leave balance: ${JSON.stringify(context.leaveBalance, null, 2)}` : ''}
-
-User message: "${userMessage}"
-
-Provide a helpful, professional, and accurate response about leave policies, procedures, or general HR questions. If the question is about specific leave balances or requests, use the provided context. Keep responses concise but informative. If you cannot answer a question definitively, direct the user to contact HR directly.
-
-Response:`;
-    }
-
-    // Initialize comprehensive knowledge base for intelligent responses
-    initializeKnowledgeBase() {
-        return {
-            greetings: ['hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening'],
-            farewells: ['bye', 'goodbye', 'see you', 'thank you', 'thanks'],
-            
-            leaveTypes: {
-                vacation: {
-                    name: 'Vacation Leave',
-                    annual: 25,
-                    advanceNotice: 30,
-                    description: 'Planned time off for rest and recreation'
-                },
-                sick: {
-                    name: 'Sick Leave',
-                    annual: 10,
-                    doctorNote: 3,
-                    description: 'Time off for illness or medical appointments'
-                },
-                personal: {
-                    name: 'Personal Leave',
-                    annual: 5,
-                    advanceNotice: 24,
-                    description: 'Personal matters that require time off'
-                },
-                maternity: {
-                    name: 'Maternity/Paternity Leave',
-                    duration: 90,
-                    advanceNotice: 60,
-                    description: 'Leave for new parents'
-                },
-                emergency: {
-                    name: 'Emergency Leave',
-                    annual: 3,
-                    advanceNotice: 0,
-                    description: 'Immediate time off for emergencies'
-                }
-            },
-            
-            processes: {
-                request: [
-                    'Click the "Request Leave" button in your dashboard',
-                    'Select the type of leave you need',
-                    'Choose your start and end dates',
-                    'Add a reason if required',
-                    'Submit for HR approval'
-                ],
-                approval: [
-                    'Your request is automatically sent to HR',
-                    'HR reviews within 2-3 business days',
-                    'You receive a notification with the decision',
-                    'Approved leave appears on the calendar'
-                ]
-            },
-            
-            tips: {
-                planning: [
-                    'Book vacation 30 days in advance when possible',
-                    'Check team calendar for conflicts',
-                    'Consider peak business periods',
-                    'Plan around project deadlines'
-                ],
-                emergency: [
-                    'Contact your manager immediately',
-                    'Submit the request as soon as possible',
-                    'Provide documentation when you return'
-                ]
-            }
-        };
-    }
-
     // OpenAI integration for intelligent responses
     async callOpenAI(userMessage, context) {
         try {
@@ -348,6 +261,47 @@ ${context.leaveBalance ? `User's Current Balance:
 Provide helpful, professional responses about leave policies, procedures, and general HR questions. Keep responses concise and actionable.`;
     }
 
+    // Initialize comprehensive knowledge base for intelligent responses
+    initializeKnowledgeBase() {
+        return {
+            greetings: ['hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening'],
+            farewells: ['bye', 'goodbye', 'see you', 'thank you', 'thanks'],
+            
+            leaveTypes: {
+                vacation: {
+                    name: 'Vacation Leave',
+                    annual: 25,
+                    advanceNotice: 30,
+                    description: 'Planned time off for rest and recreation'
+                },
+                sick: {
+                    name: 'Sick Leave',
+                    annual: 10,
+                    doctorNote: 3,
+                    description: 'Time off for illness or medical appointments'
+                },
+                personal: {
+                    name: 'Personal Leave',
+                    annual: 5,
+                    advanceNotice: 24,
+                    description: 'Personal matters that require time off'
+                },
+                maternity: {
+                    name: 'Maternity/Paternity Leave',
+                    duration: 90,
+                    advanceNotice: 60,
+                    description: 'Leave for new parents'
+                },
+                emergency: {
+                    name: 'Emergency Leave',
+                    annual: 3,
+                    advanceNotice: 0,
+                    description: 'Immediate time off for emergencies'
+                }
+            }
+        };
+    }
+
     // Fallback intelligent response system
     getFallbackResponse(userMessage, context) {
         const message = userMessage.toLowerCase();
@@ -372,11 +326,11 @@ Provide helpful, professional responses about leave policies, procedures, and ge
                 const availableSick = balance.sick - (balance.used?.sick || 0);
                 const availablePersonal = balance.personal - (balance.used?.personal || 0);
                 
-                return `**Your Current Leave Balance:**
+                return `Your Current Leave Balance:
 
-**Vacation Days**: ${availableVacation} of ${balance.vacation} remaining
-**Sick Leave**: ${availableSick} of ${balance.sick} remaining  
-**Personal Days**: ${availablePersonal} of ${balance.personal} remaining
+Vacation Days: ${availableVacation} of ${balance.vacation} remaining
+Sick Leave: ${availableSick} of ${balance.sick} remaining  
+Personal Days: ${availablePersonal} of ${balance.personal} remaining
 
 Need help planning your time off or have questions about any specific leave type?`;
             } else {
@@ -384,112 +338,14 @@ Need help planning your time off or have questions about any specific leave type
             }
         }
         
-        // Leave policy queries
-        if (message.includes('policy') || message.includes('rule') || message.includes('how many')) {
-            return `Here are our leave policies:
-
-📅 **Vacation Leave**: 25 days annually, book 30 days in advance
-🏥 **Sick Leave**: 10 days annually, doctor's note required for 3+ consecutive days
-👤 **Personal Leave**: 5 days annually, 24-hour advance notice required
-👶 **Maternity/Paternity**: 90 days available, notify 60 days in advance
-🚨 **Emergency Leave**: 3 days annually, no advance notice required
-
-Which policy would you like more details about?`;
-        }
-        
-        // Request help
-        if (message.includes('request') || message.includes('apply') || message.includes('submit')) {
-            return `To request leave:
-
-1. Click the "Request Leave" button in the dashboard
-2. Select your leave type and dates
-3. Add a brief reason (optional but recommended)
-4. Submit for approval
-
-💡 **Smart Tip**: I'll automatically check for conflicts and suggest better dates if needed!
-
-Need help with a specific type of leave request?`;
-        }
-        
-        // Approval process
-        if (message.includes('approval') || message.includes('approve') || message.includes('pending')) {
-            if (context.userRole === 'hr') {
-                return `As an HR manager, you can:
-
-✅ **Review Requests**: Check the "Leave Requests" tab
-📊 **View Conflicts**: See overlapping requests in the calendar
-🔔 **Get Notified**: Receive alerts for new requests
-📈 **Generate Reports**: Access analytics in the Reports section
-
-All pending requests are highlighted and ready for your review!`;
-            } else {
-                return `Leave approval process:
-
-1. **Submitted** → Your request is sent to HR
-2. **Under Review** → HR is reviewing your request  
-3. **Approved/Rejected** → You'll be notified of the decision
-
-⏱️ Most requests are processed within 2-3 business days. You can check the status in your dashboard under "Recent Requests".`;
-            }
-        }
-        
-        // Conflict detection
-        if (message.includes('conflict') || message.includes('overlap') || message.includes('busy')) {
-            return `Our smart scheduling system automatically:
-
-🔍 **Detects Conflicts**: Checks for team overlaps
-📅 **Suggests Alternatives**: Recommends better dates
-⚠️ **Warns About Issues**: Highlights potential problems
-📊 **Shows Team Calendar**: View who's out when
-
-This helps ensure adequate coverage and smooth operations!`;
-        }
-        
-        // Emergency leave
-        if (message.includes('emergency') || message.includes('urgent')) {
-            return `**Emergency Leave Policy**:
-
-🚨 **No Advance Notice Required** - Can be used immediately
-📞 **Notify ASAP** - Contact HR or your manager as soon as possible
-📝 **Documentation** - Provide details when you return
-⏳ **Duration** - 3 days annually available
-
-For true emergencies, your well-being comes first. Don't hesitate to use this when needed.`;
-        }
-        
-        // Sick leave specific
-        if (message.includes('sick') || message.includes('medical') || message.includes('doctor')) {
-            return `**Sick Leave Guidelines**:
-
-🏥 **10 days annually** available
-📋 **Doctor's note required** for 3+ consecutive days
-🔄 **Can be used consecutively** without additional approval
-📞 **Notify early** - Contact your manager before start of business day
-
-Your health is important - don't come to work when you're unwell!`;
-        }
-        
-        // Vacation planning
-        if (message.includes('vacation') || message.includes('holiday') || message.includes('time off')) {
-            return `**Vacation Planning Tips**:
-
-📅 **Plan Ahead**: Book 30 days in advance when possible
-🏖️ **Peak Seasons**: Summer and holidays fill up quickly
-💡 **Smart Scheduling**: Use our suggestions to avoid conflicts
-📊 **Balance Tracking**: Keep an eye on your remaining days
-
-Want me to help you check the best times to take vacation based on team availability?`;
-        }
-        
         // Default helpful response
         return `I'm here to help with all your leave management questions! I can assist with:
 
-📋 **Leave Policies** - Rules and guidelines
-📅 **Balance Inquiries** - Check remaining days  
-📝 **Request Process** - How to submit requests
-⏰ **Approval Status** - Track your requests
-🔍 **Conflict Resolution** - Avoid scheduling issues
-📊 **Reporting** - Leave analytics and trends
+Leave Policies - Rules and guidelines
+Balance Inquiries - Check remaining days  
+Request Process - How to submit requests
+Approval Status - Track your requests
+Conflict Resolution - Avoid scheduling issues
 
 What specific topic would you like to explore?`;
     }
@@ -498,37 +354,15 @@ What specific topic would you like to explore?`;
         const messageDiv = document.createElement('div');
         messageDiv.className = message.type === 'bot' ? 'bot-message' : 'user-message';
         
-        const time = message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const timestamp = message.timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
         
-        if (message.type === 'bot') {
-            messageDiv.innerHTML = `
-                <i class="fas fa-robot"></i>
-                <div class="message-content">
-                    <p>${this.formatMessage(message.content)}</p>
-                </div>
-            `;
-        } else {
-            const user = window.FirebaseConfig.getCurrentUser();
-            const avatar = user?.photoURL || 'https://via.placeholder.com/32';
-            
-            messageDiv.innerHTML = `
-                <img src="${avatar}" alt="User" class="user-avatar">
-                <div class="message-content">
-                    <p>${message.content}</p>
-                </div>
-            `;
-        }
+        messageDiv.innerHTML = `
+            <div class="message-content">${message.content}</div>
+            <div class="message-time">${timestamp}</div>
+        `;
         
         this.chatbotMessages.appendChild(messageDiv);
-        this.scrollToBottom();
-    }
-
-    formatMessage(content) {
-        // Convert markdown-like formatting to HTML
-        return content
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\*(.*?)\*/g, '<em>$1</em>')
-            .replace(/\n/g, '<br>');
+        this.chatbotMessages.scrollTop = this.chatbotMessages.scrollHeight;
     }
 
     showTypingIndicator() {
@@ -537,86 +371,38 @@ What specific topic would you like to explore?`;
         this.isTyping = true;
         const typingDiv = document.createElement('div');
         typingDiv.className = 'bot-message typing-indicator';
+        typingDiv.id = 'typing-indicator';
         typingDiv.innerHTML = `
-            <i class="fas fa-robot"></i>
             <div class="message-content">
-                <p>Typing<span class="dots">
-                    <span>.</span><span>.</span><span>.</span>
-                </span></p>
+                <div class="typing-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
             </div>
         `;
         
         this.chatbotMessages.appendChild(typingDiv);
-        this.scrollToBottom();
+        this.chatbotMessages.scrollTop = this.chatbotMessages.scrollHeight;
     }
 
     hideTypingIndicator() {
-        if (!this.isTyping) return;
-        
         this.isTyping = false;
-        const typingIndicator = this.chatbotMessages.querySelector('.typing-indicator');
+        const typingIndicator = document.getElementById('typing-indicator');
         if (typingIndicator) {
             typingIndicator.remove();
         }
     }
+}
 
-    scrollToBottom() {
-        this.chatbotMessages.scrollTop = this.chatbotMessages.scrollHeight;
+// Initialize chatbot when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Wait for configuration to load
+    if (window.CONFIG_LOADED) {
+        window.chatbot = new AIChatbot();
+    } else {
+        window.addEventListener('configLoaded', function() {
+            window.chatbot = new AIChatbot();
+        });
     }
-
-    // Update user context when user changes
-    updateUser(user, role) {
-        this.currentUser = user;
-        this.userRole = role;
-    }
-
-    // Clear chat history
-    clearChat() {
-        this.messages = [];
-        this.chatbotMessages.innerHTML = '';
-        this.loadInitialMessage();
-    }
-}
-
-// Add typing animation CSS
-const typingStyles = `
-.typing-indicator .dots {
-    display: inline-block;
-}
-
-.typing-indicator .dots span {
-    opacity: 0;
-    animation: typing 1.4s infinite;
-}
-
-.typing-indicator .dots span:nth-child(1) {
-    animation-delay: 0s;
-}
-
-.typing-indicator .dots span:nth-child(2) {
-    animation-delay: 0.2s;
-}
-
-.typing-indicator .dots span:nth-child(3) {
-    animation-delay: 0.4s;
-}
-
-@keyframes typing {
-    0%, 60%, 100% {
-        opacity: 0;
-    }
-    30% {
-        opacity: 1;
-    }
-}
-`;
-
-// Inject typing styles
-const styleSheet = document.createElement('style');
-styleSheet.textContent = typingStyles;
-document.head.appendChild(styleSheet);
-
-// Initialize chatbot when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-    window.aiChatbot = new AIChatbot();
 });

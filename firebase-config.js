@@ -32,13 +32,54 @@ const USER_ROLES = {
 // Company domain for automatic approval
 const COMPANY_DOMAIN = '@bpn.rw';
 
-// Authentication functions
+// Microsoft Outlook authentication functions
+async function signInWithMicrosoftOutlook() {
+    try {
+        const provider = new firebase.auth.OAuthProvider('microsoft.com');
+        provider.setCustomParameters({
+            tenant: 'common',
+            prompt: 'select_account'
+        });
+        
+        // Add specific scopes for Outlook/Office 365
+        provider.addScope('https://graph.microsoft.com/User.Read');
+        provider.addScope('https://graph.microsoft.com/Mail.Read');
+        
+        const result = await auth.signInWithPopup(provider);
+        const user = result.user;
+        
+        // Get additional user info from Microsoft Graph
+        const credential = firebase.auth.OAuthProvider.credentialFromResult(result);
+        const accessToken = credential.accessToken;
+        
+        // Store Microsoft access token for future Graph API calls
+        if (accessToken) {
+            localStorage.setItem('msft_access_token', accessToken);
+        }
+        
+        // Check if user exists in our system
+        let userData = await firestoreService.getUser(user.uid);
+        
+        if (!userData) {
+            // Create new user profile - determine role based on email domain
+            const isCompanyEmail = user.email.endsWith(COMPANY_DOMAIN);
+            const defaultRole = isCompanyEmail ? USER_ROLES.EMPLOYEE : USER_ROLES.EMPLOYEE;
+            const status = isCompanyEmail ? 'approved' : 'pending';
+            
+            await createUserProfile(user, defaultRole, status, 'microsoft');
+            userData = await firestoreService.getUser(user.uid);
+        }
+        
+        return { user, userData };
+    } catch (error) {
+        console.error('Microsoft sign-in error:', error);
+        throw error;
+    }
+}
+
+// Legacy function for backward compatibility
 function signInWithMicrosoft() {
-    const provider = new firebase.auth.OAuthProvider('microsoft.com');
-    provider.setCustomParameters({
-        tenant: 'common'
-    });
-    return auth.signInWithPopup(provider);
+    return signInWithMicrosoftOutlook();
 }
 
 async function signUpAsHR(email, password, displayName) {
@@ -134,7 +175,7 @@ async function checkExistingHR() {
     return users.find(user => user.role === USER_ROLES.HR);
 }
 
-async function createUserProfile(user, role, status = 'approved') {
+async function createUserProfile(user, role, status = 'approved', provider = 'email') {
     const userData = {
         uid: user.uid,
         email: user.email,
