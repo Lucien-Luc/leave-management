@@ -95,11 +95,47 @@ class FirestoreService {
     // User operations
     async createUser(userData) {
         try {
-            await db.collection(this.collections.users).doc(userData.uid).set({
+            const userDoc = {
                 ...userData,
+                status: 'pending', // New users start as pending until HR approval
+                role: userData.role || 'employee', // Default to employee
+                department: userData.department || 'General',
+                manager: userData.manager || null,
+                joinDate: userData.joinDate || firebase.firestore.FieldValue.serverTimestamp(),
+                isActive: true,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            
+            await db.collection(this.collections.users).doc(userData.uid).set(userDoc);
+            
+            // Create initial leave balance for new user
+            await this.createLeaveBalance(userData.uid, {
+                userId: userData.uid,
+                vacation: 25,
+                sick: 10,
+                personal: 5,
+                maternity: 90,
+                emergency: 3,
+                used: {
+                    vacation: 0,
+                    sick: 0,
+                    personal: 0,
+                    maternity: 0,
+                    emergency: 0
+                }
             });
+            
+            // Notify HR about new user registration
+            await this.createNotification({
+                userId: 'hr-notifications', // Special collection for HR notifications
+                title: 'New Employee Registration',
+                message: `${userData.displayName || userData.email} has registered and is pending approval.`,
+                type: 'user_registration',
+                relatedUserId: userData.uid,
+                priority: 'medium'
+            });
+            
         } catch (error) {
             console.error('Error creating user:', error);
             throw error;
@@ -124,6 +160,78 @@ class FirestoreService {
             });
         } catch (error) {
             console.error('Error updating user:', error);
+            throw error;
+        }
+    }
+
+    async getAllUsers() {
+        try {
+            const snapshot = await db.collection(this.collections.users).get();
+            return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        } catch (error) {
+            console.error('Error getting all users:', error);
+            throw error;
+        }
+    }
+
+    async getPendingUsers() {
+        try {
+            const snapshot = await db.collection(this.collections.users)
+                .where('status', '==', 'pending')
+                .orderBy('createdAt', 'desc')
+                .get();
+            return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        } catch (error) {
+            console.error('Error getting pending users:', error);
+            throw error;
+        }
+    }
+
+    async approveUser(uid) {
+        try {
+            await this.updateUser(uid, { 
+                status: 'approved',
+                approvedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            // Create notification for the user
+            const user = await this.getUser(uid);
+            if (user) {
+                await this.createNotification({
+                    userId: uid,
+                    title: 'Account Approved',
+                    message: 'Your account has been approved by HR. You can now access all leave management features.',
+                    type: 'account_approval',
+                    priority: 'high'
+                });
+            }
+        } catch (error) {
+            console.error('Error approving user:', error);
+            throw error;
+        }
+    }
+
+    async rejectUser(uid, reason = '') {
+        try {
+            await this.updateUser(uid, { 
+                status: 'rejected',
+                rejectionReason: reason,
+                rejectedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            // Create notification for the user
+            const user = await this.getUser(uid);
+            if (user) {
+                await this.createNotification({
+                    userId: uid,
+                    title: 'Account Not Approved',
+                    message: `Your account registration was not approved. ${reason ? 'Reason: ' + reason : 'Please contact HR for more information.'}`,
+                    type: 'account_rejection',
+                    priority: 'high'
+                });
+            }
+        } catch (error) {
+            console.error('Error rejecting user:', error);
             throw error;
         }
     }

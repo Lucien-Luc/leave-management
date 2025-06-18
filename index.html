@@ -68,6 +68,10 @@
                         <i class="fas fa-chart-bar"></i>
                         <span>Reports</span>
                     </button>
+                    <button class="nav-btn" data-view="users" id="users-nav" style="display: none;">
+                        <i class="fas fa-users"></i>
+                        <span>User Management</span>
+                    </button>
                 </nav>
             </div>
             <div class="header-right">
@@ -309,6 +313,59 @@
                                 <i class="fas fa-chart-line"></i>
                                 <p>Chart will be displayed here</p>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Management View -->
+            <div class="view-content" id="users-view" style="display: none;">
+                <div class="view-header">
+                    <h2>User Management</h2>
+                    <div class="view-actions">
+                        <button class="btn btn-secondary" id="refresh-users">
+                            <i class="fas fa-sync"></i>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <div class="users-content">
+                    <!-- Pending Users Section -->
+                    <div class="section">
+                        <h3>Pending Approvals</h3>
+                        <div class="users-grid" id="pending-users">
+                            <div class="empty-state">
+                                <i class="fas fa-user-clock"></i>
+                                <p>No pending user approvals</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- All Users Section -->
+                    <div class="section">
+                        <h3>All Employees</h3>
+                        <div class="users-table-container">
+                            <table class="users-table" id="all-users-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Department</th>
+                                        <th>Status</th>
+                                        <th>Join Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="users-table-body">
+                                    <tr>
+                                        <td colspan="6" class="empty-state">
+                                            <i class="fas fa-users"></i>
+                                            <p>No users found</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>

@@ -1,5 +1,5 @@
-// AI Chatbot functionality using OpenAI API
-// Provides intelligent assistance for HR leave management queries
+// AI Chatbot functionality using Hugging Face Inference API
+// Provides intelligent assistance for HR leave management queries using free AI models
 
 class AIChatbot {
     constructor() {
@@ -141,8 +141,8 @@ class AIChatbot {
         // Prepare context for intelligent response
         const context = this.buildContext(user, userRole, leaveBalance);
         
-        // Use advanced rule-based AI system
-        return this.getIntelligentResponse(userMessage, context);
+        // Use Hugging Face AI for intelligent responses
+        return await this.getHuggingFaceResponse(userMessage, context);
     }
 
     buildContext(user, userRole, leaveBalance) {
@@ -276,8 +276,78 @@ Response:`;
         };
     }
 
-    // Advanced intelligent response system
-    getIntelligentResponse(userMessage, context) {
+    // Hugging Face AI integration for intelligent responses
+    async getHuggingFaceResponse(userMessage, context) {
+        try {
+            // Build context-aware prompt for the AI
+            const systemPrompt = this.buildSystemPrompt(context);
+            const fullPrompt = `${systemPrompt}\n\nUser: ${userMessage}\nAssistant:`;
+
+            // Call Hugging Face Inference API (free tier)
+            const response = await fetch('https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    // No API key needed for public models on free tier
+                },
+                body: JSON.stringify({
+                    inputs: fullPrompt,
+                    parameters: {
+                        max_length: 200,
+                        temperature: 0.7,
+                        do_sample: true,
+                        pad_token_id: 50256
+                    }
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            
+            if (data && data[0] && data[0].generated_text) {
+                // Extract the assistant's response
+                const fullText = data[0].generated_text;
+                const assistantResponse = fullText.split('Assistant:').pop().trim();
+                return assistantResponse || this.getFallbackResponse(userMessage, context);
+            } else {
+                return this.getFallbackResponse(userMessage, context);
+            }
+        } catch (error) {
+            console.error('Hugging Face API error:', error);
+            // Fallback to rule-based system if API fails
+            return this.getFallbackResponse(userMessage, context);
+        }
+    }
+
+    buildSystemPrompt(context) {
+        const kb = this.knowledgeBase;
+        
+        return `You are an intelligent HR assistant for a company's leave management system. 
+
+Context:
+- User role: ${context.userRole}
+- Current date: ${context.currentDate}
+
+Company Leave Policies:
+- Vacation: ${kb.leaveTypes.vacation.annual} days annually, ${kb.leaveTypes.vacation.advanceNotice} days advance notice
+- Sick Leave: ${kb.leaveTypes.sick.annual} days annually, doctor's note after ${kb.leaveTypes.sick.doctorNote} consecutive days
+- Personal: ${kb.leaveTypes.personal.annual} days annually, ${kb.leaveTypes.personal.advanceNotice} hours advance notice
+- Maternity/Paternity: ${kb.leaveTypes.maternity.duration} days, ${kb.leaveTypes.maternity.advanceNotice} days advance notice
+- Emergency: ${kb.leaveTypes.emergency.annual} days annually, no advance notice required
+
+${context.leaveBalance ? `User's Current Balance:
+- Vacation: ${context.leaveBalance.vacation - (context.leaveBalance.used?.vacation || 0)} days remaining
+- Sick: ${context.leaveBalance.sick - (context.leaveBalance.used?.sick || 0)} days remaining
+- Personal: ${context.leaveBalance.personal - (context.leaveBalance.used?.personal || 0)} days remaining` : ''}
+
+Provide helpful, professional responses about leave policies, procedures, and general HR questions. Keep responses concise and actionable.`;
+    }
+
+    // Fallback intelligent response system
+    getFallbackResponse(userMessage, context) {
         const message = userMessage.toLowerCase();
         const kb = this.knowledgeBase;
         

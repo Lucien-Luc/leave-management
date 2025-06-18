@@ -10,7 +10,10 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@types/memoizee": "^0.4.12",
     "firebase": "^11.9.1",
-    "openai": "^5.5.1"
+    "memoizee": "^0.4.17",
+    "openai": "^5.5.1",
+    "openid-client": "^6.5.1"
   }
 }
