@@ -23,61 +23,159 @@ const db = firebase.firestore();
 let currentUser = null;
 let userRole = null;
 
-// Demo users for testing (in production, this would be handled by proper authentication)
-const demoUsers = {
-    hr: {
-        uid: 'hr-demo-user',
-        email: 'hr@company.com',
-        displayName: 'HR Manager',
-        photoURL: 'https://via.placeholder.com/150',
-        role: 'hr'
-    },
-    employee: {
-        uid: 'employee-demo-user',
-        email: 'employee@company.com',
-        displayName: 'John Doe',
-        photoURL: 'https://via.placeholder.com/150',
-        role: 'employee'
-    }
+// Production user roles and restrictions
+const USER_ROLES = {
+    HR: 'hr',
+    EMPLOYEE: 'employee'
 };
 
+// Company domain for automatic approval
+const COMPANY_DOMAIN = '@bpn.rw';
+
 // Authentication functions
-function signInWithGoogle() {
-    const provider = new firebase.auth.GoogleAuthProvider();
+function signInWithMicrosoft() {
+    const provider = new firebase.auth.OAuthProvider('microsoft.com');
+    provider.setCustomParameters({
+        tenant: 'common'
+    });
     return auth.signInWithPopup(provider);
 }
 
-function signInWithDemo(role) {
-    return new Promise((resolve) => {
-        const user = demoUsers[role];
-        currentUser = user;
-        userRole = role;
-        
-        // Store user data in localStorage for persistence
-        localStorage.setItem('demoUser', JSON.stringify(user));
-        
-        resolve(user);
-    });
+async function signUpAsHR(email, password, displayName) {
+    // Check if HR already exists
+    const existingHR = await checkExistingHR();
+    if (existingHR) {
+        throw new Error('HR account already exists. Only one HR account is allowed.');
+    }
+    
+    // Create user with email/password
+    const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+    const user = userCredential.user;
+    
+    // Update profile
+    await user.updateProfile({ displayName });
+    
+    // Create HR user profile
+    await createUserProfile(user, USER_ROLES.HR);
+    
+    return user;
+}
+
+async function signInAsHR(email, password) {
+    const userCredential = await auth.signInWithEmailAndPassword(email, password);
+    const user = userCredential.user;
+    
+    // Verify user is HR
+    const userData = await firestoreService.getUser(user.uid);
+    if (!userData || userData.role !== USER_ROLES.HR) {
+        await auth.signOut();
+        throw new Error('Access denied. This account is not authorized as HR.');
+    }
+    
+    return user;
+}
+
+async function signUpAsEmployee(email, password, displayName) {
+    // Create user with email/password
+    const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+    const user = userCredential.user;
+    
+    // Update profile
+    await user.updateProfile({ displayName });
+    
+    // Determine approval status
+    const isAutoApproved = email.endsWith(COMPANY_DOMAIN);
+    const status = isAutoApproved ? 'approved' : 'pending';
+    
+    // Create employee user profile
+    await createUserProfile(user, USER_ROLES.EMPLOYEE, status);
+    
+    return { user, isAutoApproved };
+}
+
+async function signInAsEmployee(email, password) {
+    const userCredential = await auth.signInWithEmailAndPassword(email, password);
+    const user = userCredential.user;
+    
+    // Check user status
+    const userData = await firestoreService.getUser(user.uid);
+    if (!userData) {
+        await auth.signOut();
+        throw new Error('User profile not found.');
+    }
+    
+    if (userData.role !== USER_ROLES.EMPLOYEE) {
+        await auth.signOut();
+        throw new Error('Access denied. Please use HR login.');
+    }
+    
+    if (userData.status === 'pending') {
+        await auth.signOut();
+        throw new Error('Your account is pending HR approval.');
+    }
+    
+    if (userData.status === 'rejected') {
+        await auth.signOut();
+        throw new Error('Your account has been rejected. Please contact HR.');
+    }
+    
+    return user;
 }
 
 function signOut() {
     currentUser = null;
     userRole = null;
-    localStorage.removeItem('demoUser');
     return auth.signOut();
 }
 
-function getCurrentUser() {
-    // Check if demo user exists in localStorage
-    const demoUser = localStorage.getItem('demoUser');
-    if (demoUser) {
-        const user = JSON.parse(demoUser);
-        currentUser = user;
-        userRole = user.role;
-        return user;
+// Helper functions
+async function checkExistingHR() {
+    const users = await firestoreService.getAllUsers();
+    return users.find(user => user.role === USER_ROLES.HR);
+}
+
+async function createUserProfile(user, role, status = 'approved') {
+    const userData = {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName || user.email.split('@')[0],
+        role: role,
+        status: status,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    await firestoreService.createUser(userData);
+    
+    // Initialize leave balance for employees
+    if (role === USER_ROLES.EMPLOYEE && status === 'approved') {
+        await firestoreService.createLeaveBalance(user.uid, {
+            vacation: 25,
+            sick: 10,
+            personal: 5,
+            maternity: 90,
+            emergency: 3
+        });
     }
     
+    return userData;
+}
+
+function getCurrentUser() {
     return auth.currentUser;
+}
+
+async function getCurrentUserRole() {
+    const user = getCurrentUser();
+    if (!user) return null;
+    
+    try {
+        const userData = await firestoreService.getUser(user.uid);
+        return userData ? userData.role : null;
+    } catch (error) {
+        console.error('Error fetching user role:', error);
+        return null;
+    }
 }
 
 // Firestore operations
@@ -97,8 +195,6 @@ class FirestoreService {
         try {
             const userDoc = {
                 ...userData,
-                status: 'pending', // New users start as pending until HR approval
-                role: userData.role || 'employee', // Default to employee
                 department: userData.department || 'General',
                 manager: userData.manager || null,
                 joinDate: userData.joinDate || firebase.firestore.FieldValue.serverTimestamp(),
@@ -109,32 +205,39 @@ class FirestoreService {
             
             await db.collection(this.collections.users).doc(userData.uid).set(userDoc);
             
-            // Create initial leave balance for new user
-            await this.createLeaveBalance(userData.uid, {
-                userId: userData.uid,
-                vacation: 25,
-                sick: 10,
-                personal: 5,
-                maternity: 90,
-                emergency: 3,
-                used: {
-                    vacation: 0,
-                    sick: 0,
-                    personal: 0,
-                    maternity: 0,
-                    emergency: 0
-                }
-            });
+            // Create initial leave balance only for approved employees
+            if (userData.role === 'employee' && userData.status === 'approved') {
+                await this.createLeaveBalance(userData.uid, {
+                    userId: userData.uid,
+                    vacation: 25,
+                    sick: 10,
+                    personal: 5,
+                    maternity: 90,
+                    emergency: 3,
+                    used: {
+                        vacation: 0,
+                        sick: 0,
+                        personal: 0,
+                        maternity: 0,
+                        emergency: 0
+                    }
+                });
+            }
             
-            // Notify HR about new user registration
-            await this.createNotification({
-                userId: 'hr-notifications', // Special collection for HR notifications
-                title: 'New Employee Registration',
-                message: `${userData.displayName || userData.email} has registered and is pending approval.`,
-                type: 'user_registration',
-                relatedUserId: userData.uid,
-                priority: 'medium'
-            });
+            // Notify HR about new employee registration (but not for HR account creation)
+            if (userData.role === 'employee' && userData.status === 'pending') {
+                const hrUser = await this.getHRUser();
+                if (hrUser) {
+                    await this.createNotification({
+                        userId: hrUser.uid,
+                        title: 'New Employee Registration',
+                        message: `${userData.displayName || userData.email} has registered and is pending approval.`,
+                        type: 'user_registration',
+                        relatedUserId: userData.uid,
+                        priority: 'medium'
+                    });
+                }
+            }
             
         } catch (error) {
             console.error('Error creating user:', error);
