@@ -152,6 +152,11 @@
                                     <input type="password" id="employee-signup-confirm" required minlength="6">
                                 </div>
                                 <button type="submit" class="submit-btn">Create Account</button>
+                                <div class="divider">or</div>
+                                <button type="button" class="microsoft-btn" onclick="signInEmployeeWithMicrosoft()">
+                                    <i class="fab fa-microsoft"></i>
+                                    Sign in with Microsoft Outlook
+                                </button>
                                 <p class="note">Accounts with @bpn.rw email addresses are automatically approved.</p>
                             </form>
                         </div>
@@ -675,7 +680,8 @@
     <!-- Application Scripts -->
     <script src="utils.js"></script>
     <script src="firebase-config.js"></script>
-    <script src="ai-chatbot.js"></script>
+    <script src="microsoft-auth.js"></script>
+    <script src="ai-chatbot-fixed.js"></script>
     <script src="leave-manager.js"></script>
     <script src="calendar.js"></script>
     <script src="script.js"></script>
