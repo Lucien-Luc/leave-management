@@ -39,16 +39,52 @@ class HRLeaveApp {
             });
         });
 
-        // Authentication
-        document.getElementById('google-signin-btn')?.addEventListener('click', () => {
-            this.signInWithGoogle();
+        // Authentication - Role Selection
+        document.getElementById('hr-login-btn')?.addEventListener('click', () => {
+            this.showModal('hr-login-modal');
         });
 
-        document.querySelectorAll('.demo-btn').forEach(btn => {
+        document.getElementById('employee-login-btn')?.addEventListener('click', () => {
+            this.showModal('employee-login-modal');
+        });
+
+        // Modal Controls
+        document.querySelectorAll('.close-modal').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const role = e.target.dataset.role;
-                this.signInWithDemo(role);
+                const modalId = e.target.dataset.modal;
+                this.hideModal(modalId);
             });
+        });
+
+        // Tab Controls
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const tabId = e.target.dataset.tab;
+                const parentModal = e.target.closest('.auth-modal');
+                this.switchTab(parentModal, tabId);
+            });
+        });
+
+        // HR Authentication Forms
+        document.getElementById('hr-signin-form')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.handleHRSignIn(e);
+        });
+
+        document.getElementById('hr-signup-form')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.handleHRSignUp(e);
+        });
+
+        // Employee Authentication Forms
+        document.getElementById('employee-signin-form')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.handleEmployeeSignIn(e);
+        });
+
+        document.getElementById('employee-signup-form')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.handleEmployeeSignUp(e);
         });
 
         document.getElementById('logout-btn')?.addEventListener('click', () => {
@@ -93,21 +129,11 @@ class HRLeaveApp {
 
     async checkAuthState() {
         try {
-            // Check for demo user in localStorage
-            const demoUser = localStorage.getItem('demoUser');
-            if (demoUser) {
-                const user = JSON.parse(demoUser);
-                this.currentUser = user;
-                this.userRole = user.role;
-                this.isAuthenticated = true;
-                return;
-            }
-
             // Check Firebase auth state
             const user = window.FirebaseConfig.getCurrentUser();
             if (user) {
                 this.currentUser = user;
-                this.userRole = await this.getUserRole(user.uid);
+                this.userRole = await window.FirebaseConfig.getCurrentUserRole();
                 this.isAuthenticated = true;
             }
         } catch (error) {
@@ -126,34 +152,135 @@ class HRLeaveApp {
         }
     }
 
-    async signInWithGoogle() {
+    // New production authentication handlers
+    async handleHRSignIn(event) {
+        const form = event.target;
+        const formData = new FormData(form);
+        const email = formData.get('email') || document.getElementById('hr-email').value;
+        const password = formData.get('password') || document.getElementById('hr-password').value;
+
         try {
-            const result = await window.FirebaseConfig.signInWithGoogle();
-            this.currentUser = result.user;
-            this.userRole = await this.getUserRole(result.user.uid);
+            const submitBtn = form.querySelector('.submit-btn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Signing in...';
+
+            const user = await window.FirebaseConfig.signInAsHR(email, password);
+            this.currentUser = user;
+            this.userRole = 'hr';
             this.isAuthenticated = true;
-            
-            // Create user profile if it doesn't exist
-            await this.createUserProfile(result.user);
-            
+
+            this.hideModal('hr-login-modal');
             await this.initializeApp();
         } catch (error) {
-            console.error('Google sign-in error:', error);
-            this.showErrorMessage('Failed to sign in with Google. Please try again.');
+            console.error('HR sign-in error:', error);
+            this.showErrorMessage(error.message || 'Failed to sign in as HR. Please check your credentials.');
+        } finally {
+            const submitBtn = form.querySelector('.submit-btn');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Sign In as HR';
         }
     }
 
-    async signInWithDemo(role) {
+    async handleHRSignUp(event) {
+        const form = event.target;
+        const name = document.getElementById('hr-signup-name').value;
+        const email = document.getElementById('hr-signup-email').value;
+        const password = document.getElementById('hr-signup-password').value;
+        const confirmPassword = document.getElementById('hr-signup-confirm').value;
+
+        if (password !== confirmPassword) {
+            this.showErrorMessage('Passwords do not match.');
+            return;
+        }
+
         try {
-            const user = await window.FirebaseConfig.signInWithDemo(role);
+            const submitBtn = form.querySelector('.submit-btn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Creating Account...';
+
+            const user = await window.FirebaseConfig.signUpAsHR(email, password, name);
             this.currentUser = user;
-            this.userRole = role;
+            this.userRole = 'hr';
             this.isAuthenticated = true;
-            
+
+            this.hideModal('hr-login-modal');
+            this.showSuccessMessage('HR account created successfully!');
             await this.initializeApp();
         } catch (error) {
-            console.error('Demo sign-in error:', error);
-            this.showErrorMessage('Failed to sign in with demo account.');
+            console.error('HR sign-up error:', error);
+            this.showErrorMessage(error.message || 'Failed to create HR account.');
+        } finally {
+            const submitBtn = form.querySelector('.submit-btn');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Create HR Account';
+        }
+    }
+
+    async handleEmployeeSignIn(event) {
+        const form = event.target;
+        const email = document.getElementById('employee-email').value;
+        const password = document.getElementById('employee-password').value;
+
+        try {
+            const submitBtn = form.querySelector('.submit-btn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Signing in...';
+
+            const user = await window.FirebaseConfig.signInAsEmployee(email, password);
+            this.currentUser = user;
+            this.userRole = 'employee';
+            this.isAuthenticated = true;
+
+            this.hideModal('employee-login-modal');
+            await this.initializeApp();
+        } catch (error) {
+            console.error('Employee sign-in error:', error);
+            this.showErrorMessage(error.message || 'Failed to sign in. Please check your credentials.');
+        } finally {
+            const submitBtn = form.querySelector('.submit-btn');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Sign In';
+        }
+    }
+
+    async handleEmployeeSignUp(event) {
+        const form = event.target;
+        const name = document.getElementById('employee-signup-name').value;
+        const email = document.getElementById('employee-signup-email').value;
+        const password = document.getElementById('employee-signup-password').value;
+        const confirmPassword = document.getElementById('employee-signup-confirm').value;
+
+        if (password !== confirmPassword) {
+            this.showErrorMessage('Passwords do not match.');
+            return;
+        }
+
+        try {
+            const submitBtn = form.querySelector('.submit-btn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Creating Account...';
+
+            const result = await window.FirebaseConfig.signUpAsEmployee(email, password, name);
+            
+            this.hideModal('employee-login-modal');
+            
+            if (result.isAutoApproved) {
+                this.currentUser = result.user;
+                this.userRole = 'employee';
+                this.isAuthenticated = true;
+                this.showSuccessMessage('Account created and approved automatically!');
+                await this.initializeApp();
+            } else {
+                this.showSuccessMessage('Account created successfully! Please wait for HR approval before signing in.');
+                this.showLoginScreen();
+            }
+        } catch (error) {
+            console.error('Employee sign-up error:', error);
+            this.showErrorMessage(error.message || 'Failed to create account.');
+        } finally {
+            const submitBtn = form.querySelector('.submit-btn');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Create Account';
         }
     }
 
@@ -785,6 +912,39 @@ class HRLeaveApp {
 
         if (window.aiChatbot) {
             window.aiChatbot.clearChat();
+        }
+    }
+
+    // Modal Control Methods
+    showModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.remove('hidden');
+        }
+    }
+
+    hideModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.add('hidden');
+        }
+    }
+
+    switchTab(parentModal, tabId) {
+        // Remove active class from all tabs and content
+        const tabs = parentModal.querySelectorAll('.tab-btn');
+        const contents = parentModal.querySelectorAll('.tab-content');
+        
+        tabs.forEach(tab => tab.classList.remove('active'));
+        contents.forEach(content => content.classList.remove('active'));
+        
+        // Add active class to selected tab and content
+        const selectedTab = parentModal.querySelector(`[data-tab="${tabId}"]`);
+        const selectedContent = parentModal.querySelector(`#${tabId}`);
+        
+        if (selectedTab && selectedContent) {
+            selectedTab.classList.add('active');
+            selectedContent.classList.add('active');
         }
     }
 

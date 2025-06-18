@@ -141,8 +141,8 @@ class AIChatbot {
         // Prepare context for intelligent response
         const context = this.buildContext(user, userRole, leaveBalance);
         
-        // Use Hugging Face AI for intelligent responses
-        return await this.getHuggingFaceResponse(userMessage, context);
+        // Use Gemini AI for intelligent responses (faster than Hugging Face)
+        return await this.getGeminiResponse(userMessage, context);
     }
 
     buildContext(user, userRole, leaveBalance) {
@@ -277,26 +277,28 @@ Response:`;
     }
 
     // Hugging Face AI integration for intelligent responses
-    async getHuggingFaceResponse(userMessage, context) {
+    async getGeminiResponse(userMessage, context) {
         try {
             // Build context-aware prompt for the AI
             const systemPrompt = this.buildSystemPrompt(context);
-            const fullPrompt = `${systemPrompt}\n\nUser: ${userMessage}\nAssistant:`;
+            const fullPrompt = `${systemPrompt}\n\nUser: ${userMessage}`;
 
-            // Call Hugging Face Inference API (free tier)
-            const response = await fetch('https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium', {
+            // Use Google's Gemini Flash API (free tier, faster than Hugging Face)
+            const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    // No API key needed for public models on free tier
                 },
                 body: JSON.stringify({
-                    inputs: fullPrompt,
-                    parameters: {
-                        max_length: 200,
+                    contents: [{
+                        parts: [{
+                            text: fullPrompt
+                        }]
+                    }],
+                    generationConfig: {
                         temperature: 0.7,
-                        do_sample: true,
-                        pad_token_id: 50256
+                        maxOutputTokens: 200,
+                        topP: 0.9
                     }
                 })
             });
@@ -307,16 +309,13 @@ Response:`;
 
             const data = await response.json();
             
-            if (data && data[0] && data[0].generated_text) {
-                // Extract the assistant's response
-                const fullText = data[0].generated_text;
-                const assistantResponse = fullText.split('Assistant:').pop().trim();
-                return assistantResponse || this.getFallbackResponse(userMessage, context);
+            if (data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+                return data.candidates[0].content.parts[0].text.trim();
             } else {
                 return this.getFallbackResponse(userMessage, context);
             }
         } catch (error) {
-            console.error('Hugging Face API error:', error);
+            console.error('Gemini API error:', error);
             // Fallback to rule-based system if API fails
             return this.getFallbackResponse(userMessage, context);
         }
