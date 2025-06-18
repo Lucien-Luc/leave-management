@@ -1,14 +1,14 @@
 // Firebase configuration and initialization
 // This file handles Firebase setup, authentication, and Firestore operations
 
-// Firebase configuration with your provided keys
+// Firebase configuration using environment variables for security
 const firebaseConfig = {
-    apiKey: "AIzaSyAqxMS295v7XBtFrwZKtrEgb_b_hxzy77Q",
-    authDomain: "mydb-47035.firebaseapp.com",
-    projectId: "mydb-47035",
-    storageBucket: "mydb-47035.firebasestorage.app",
-    messagingSenderId: "816767003162",
-    appId: "1:816767003162:web:8530107cd5baadc9167fa3",
+    apiKey: window.FIREBASE_API_KEY || "AIzaSyAqxMS295v7XBtFrwZKtrEgb_b_hxzy77Q",
+    authDomain: window.FIREBASE_AUTH_DOMAIN || "mydb-47035.firebaseapp.com",
+    projectId: window.FIREBASE_PROJECT_ID || "mydb-47035",
+    storageBucket: window.FIREBASE_STORAGE_BUCKET || "mydb-47035.firebasestorage.app",
+    messagingSenderId: window.FIREBASE_MESSAGING_SENDER_ID || "816767003162",
+    appId: window.FIREBASE_APP_ID || "1:816767003162:web:8530107cd5baadc9167fa3",
     measurementId: "G-QRH3R4MTEC"
 };
 

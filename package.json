@@ -11,6 +11,7 @@
   "description": "",
   "dependencies": {
     "@types/memoizee": "^0.4.12",
+    "express": "^5.1.0",
     "firebase": "^11.9.1",
     "memoizee": "^0.4.17",
     "openai": "^5.5.1",

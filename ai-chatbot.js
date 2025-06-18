@@ -93,7 +93,7 @@ class AIChatbot {
 
         try {
             // Get AI response
-            const botResponse = await this.getAIResponse(message);
+            const botResponse = await this.getOpenAIResponse(message);
             
             // Hide typing indicator
             this.hideTypingIndicator();
@@ -123,14 +123,14 @@ class AIChatbot {
         }
     }
 
-    async getAIResponse(userMessage) {
+    async getOpenAIResponse(userMessage) {
         // Get current user context
-        const user = window.FirebaseConfig.getCurrentUser();
-        const userRole = window.FirebaseConfig.userRole;
+        const user = window.FirebaseConfig && window.FirebaseConfig.getCurrentUser ? window.FirebaseConfig.getCurrentUser() : null;
+        const userRole = window.FirebaseConfig ? window.FirebaseConfig.userRole : 'employee';
         
         // Get user's leave balance if available
         let leaveBalance = null;
-        if (user) {
+        if (user && window.FirebaseConfig && window.FirebaseConfig.firestoreService) {
             try {
                 leaveBalance = await window.FirebaseConfig.firestoreService.getLeaveBalance(user.uid);
             } catch (error) {
@@ -141,8 +141,8 @@ class AIChatbot {
         // Prepare context for intelligent response
         const context = this.buildContext(user, userRole, leaveBalance);
         
-        // Use Gemini AI for intelligent responses (faster than Hugging Face)
-        return await this.getGeminiResponse(userMessage, context);
+        // Use OpenAI for intelligent responses
+        return await this.callOpenAI(userMessage, context);
     }
 
     buildContext(user, userRole, leaveBalance) {
@@ -276,31 +276,35 @@ Response:`;
         };
     }
 
-    // Hugging Face AI integration for intelligent responses
-    async getGeminiResponse(userMessage, context) {
+    // OpenAI integration for intelligent responses
+    async callOpenAI(userMessage, context) {
         try {
             // Build context-aware prompt for the AI
             const systemPrompt = this.buildSystemPrompt(context);
-            const fullPrompt = `${systemPrompt}\n\nUser: ${userMessage}`;
-
-            // Use Google's Gemini Flash API (free tier, faster than Hugging Face)
-            const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent', {
+            
+            const response = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${window.OPENAI_API_KEY}`
                 },
                 body: JSON.stringify({
-                    contents: [{
-                        parts: [{
-                            text: fullPrompt
-                        }]
-                    }],
-                    generationConfig: {
-                        temperature: 0.7,
-                        maxOutputTokens: 200,
-                        topP: 0.9
-                    }
+                    model: 'gpt-3.5-turbo',
+                    messages: [
+                        {
+                            role: 'system',
+                            content: systemPrompt
+                        },
+                        {
+                            role: 'user', 
+                            content: userMessage
+                        }
+                    ],
+                    max_tokens: 200,
+                    temperature: 0.7,
+                    top_p: 0.9
                 })
+            });
             });
 
             if (!response.ok) {
@@ -309,16 +313,17 @@ Response:`;
 
             const data = await response.json();
             
-            if (data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-                return data.candidates[0].content.parts[0].text.trim();
+            if (data?.choices?.[0]?.message?.content) {
+                return data.choices[0].message.content.trim();
             } else {
                 return this.getFallbackResponse(userMessage, context);
             }
         } catch (error) {
-            console.error('Gemini API error:', error);
+            console.error('OpenAI API error:', error);
             // Fallback to rule-based system if API fails
             return this.getFallbackResponse(userMessage, context);
         }
+    }
     }
 
     buildSystemPrompt(context) {
