@@ -163,8 +163,19 @@ class HRLeaveApp {
                     photoURL: user.photoURL,
                     role: 'employee', // Default role
                     department: 'General',
-                    joinDate: new Date().toISOString()
+                    joinDate: new Date().toISOString(),
+                    status: 'pending' // New users start as pending
                 });
+                
+                // Show pending approval message
+                this.showPendingApprovalMessage();
+                return;
+            } else if (existingUser.status === 'pending') {
+                this.showPendingApprovalMessage();
+                return;
+            } else if (existingUser.status === 'rejected') {
+                this.showRejectedAccountMessage(existingUser.rejectionReason);
+                return;
             }
         } catch (error) {
             console.error('Error creating user profile:', error);
