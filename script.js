@@ -84,6 +84,11 @@ class HRLeaveApp {
         window.addEventListener('resize', () => {
             this.handleResize();
         });
+
+        // User management refresh button
+        document.getElementById('refresh-users')?.addEventListener('click', () => {
+            this.loadUsersData();
+        });
     }
 
     async checkAuthState() {
@@ -240,6 +245,12 @@ class HRLeaveApp {
         if (userAvatarElement && this.currentUser) {
             userAvatarElement.src = this.currentUser.photoURL || 'https://via.placeholder.com/32';
         }
+        
+        // Show/hide HR-only navigation elements
+        const hrNavElements = document.querySelectorAll('#reports-nav, #users-nav');
+        hrNavElements.forEach(el => {
+            el.style.display = this.userRole === 'hr' ? 'flex' : 'none';
+        });
     }
 
     async initializeComponents() {
@@ -315,6 +326,11 @@ class HRLeaveApp {
             case 'reports':
                 if (this.userRole === 'hr') {
                     this.loadReportsData();
+                }
+                break;
+            case 'users':
+                if (this.userRole === 'hr') {
+                    this.loadUsersData();
                 }
                 break;
             case 'requests':
@@ -563,6 +579,198 @@ class HRLeaveApp {
     showSuccessMessage(message) {
         // Simple alert for now - in production, use a proper toast notification
         alert(message);
+    }
+
+    showPendingApprovalMessage() {
+        const loginScreen = document.getElementById('login-screen');
+        const mainApp = document.getElementById('main-app');
+        
+        // Hide main app and show pending message
+        mainApp?.classList.add('hidden');
+        loginScreen?.classList.remove('hidden');
+        
+        // Update login screen with pending message
+        const loginContainer = document.querySelector('.login-container');
+        if (loginContainer) {
+            loginContainer.innerHTML = `
+                <div class="logo-container">
+                    <div class="logo-placeholder">
+                        <img src="attached_assets/logo_1750231083606.png" alt="HR Leave Manager" style="height: 60px; margin-bottom: 1rem;">
+                        <h1>HR Leave Manager</h1>
+                    </div>
+                </div>
+                <div class="pending-approval">
+                    <div class="status-icon">
+                        <i class="fas fa-clock" style="color: #f59e0b; font-size: 3rem;"></i>
+                    </div>
+                    <h2>Account Pending Approval</h2>
+                    <p>Your account has been registered successfully and is awaiting HR approval. You will receive a notification once your account is approved.</p>
+                    <p><strong>Email:</strong> ${this.currentUser?.email}</p>
+                    <div class="pending-actions">
+                        <button class="btn btn-secondary" onclick="hrApp.logout()">Sign Out</button>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    showRejectedAccountMessage(reason) {
+        const loginScreen = document.getElementById('login-screen');
+        const mainApp = document.getElementById('main-app');
+        
+        // Hide main app and show rejection message
+        mainApp?.classList.add('hidden');
+        loginScreen?.classList.remove('hidden');
+        
+        // Update login screen with rejection message
+        const loginContainer = document.querySelector('.login-container');
+        if (loginContainer) {
+            loginContainer.innerHTML = `
+                <div class="logo-container">
+                    <div class="logo-placeholder">
+                        <img src="attached_assets/logo_1750231083606.png" alt="HR Leave Manager" style="height: 60px; margin-bottom: 1rem;">
+                        <h1>HR Leave Manager</h1>
+                    </div>
+                </div>
+                <div class="rejected-account">
+                    <div class="status-icon">
+                        <i class="fas fa-times-circle" style="color: #ef4444; font-size: 3rem;"></i>
+                    </div>
+                    <h2>Account Not Approved</h2>
+                    <p>Your account registration was not approved by HR.</p>
+                    ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ''}
+                    <p>Please contact HR for more information or to discuss your application.</p>
+                    <div class="rejected-actions">
+                        <button class="btn btn-secondary" onclick="hrApp.logout()">Sign Out</button>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    async loadUsersData() {
+        if (this.userRole !== 'hr') return;
+        
+        try {
+            // Load pending users
+            const pendingUsers = await window.FirebaseConfig.firestoreService.getPendingUsers();
+            this.displayPendingUsers(pendingUsers);
+            
+            // Load all users
+            const allUsers = await window.FirebaseConfig.firestoreService.getAllUsers();
+            this.displayAllUsers(allUsers);
+            
+        } catch (error) {
+            console.error('Error loading users data:', error);
+        }
+    }
+
+    displayPendingUsers(users) {
+        const pendingContainer = document.getElementById('pending-users');
+        if (!pendingContainer) return;
+        
+        if (users.length === 0) {
+            pendingContainer.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-user-clock"></i>
+                    <p>No pending user approvals</p>
+                </div>
+            `;
+            return;
+        }
+        
+        const usersHTML = users.map(user => `
+            <div class="user-card">
+                <div class="user-info">
+                    <div class="user-name">${user.displayName || 'No Name'}</div>
+                    <div class="user-email">${user.email}</div>
+                </div>
+                <div class="user-meta">
+                    <span><i class="fas fa-building"></i> ${user.department || 'General'}</span>
+                    <span><i class="fas fa-calendar"></i> ${Utils.DateHelper.format(user.createdAt?.toDate?.() || new Date())}</span>
+                </div>
+                <div class="user-actions">
+                    <button class="btn-approve" onclick="hrApp.approveUser('${user.id}')">
+                        <i class="fas fa-check"></i> Approve
+                    </button>
+                    <button class="btn-reject" onclick="hrApp.showRejectUserModal('${user.id}')">
+                        <i class="fas fa-times"></i> Reject
+                    </button>
+                </div>
+            </div>
+        `).join('');
+        
+        pendingContainer.innerHTML = usersHTML;
+    }
+
+    displayAllUsers(users) {
+        const tableBody = document.getElementById('users-table-body');
+        if (!tableBody) return;
+        
+        if (users.length === 0) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="empty-state">
+                        <i class="fas fa-users"></i>
+                        <p>No users found</p>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        const usersHTML = users.map(user => `
+            <tr>
+                <td>${user.displayName || 'No Name'}</td>
+                <td>${user.email}</td>
+                <td>${user.department || 'General'}</td>
+                <td>
+                    <span class="status-badge status-${user.status}">
+                        ${Utils.StringHelper.capitalize(user.status || 'pending')}
+                    </span>
+                </td>
+                <td>${Utils.DateHelper.format(user.createdAt?.toDate?.() || new Date())}</td>
+                <td>
+                    ${user.status === 'pending' ? `
+                        <button class="btn btn-sm btn-primary" onclick="hrApp.approveUser('${user.id}')">Approve</button>
+                        <button class="btn btn-sm btn-danger" onclick="hrApp.showRejectUserModal('${user.id}')">Reject</button>
+                    ` : user.status === 'approved' ? `
+                        <button class="btn btn-sm btn-secondary" onclick="hrApp.deactivateUser('${user.id}')">Deactivate</button>
+                    ` : ''}
+                </td>
+            </tr>
+        `).join('');
+        
+        tableBody.innerHTML = usersHTML;
+    }
+
+    async approveUser(userId) {
+        try {
+            await window.FirebaseConfig.firestoreService.approveUser(userId);
+            this.showSuccessMessage('User approved successfully');
+            this.loadUsersData(); // Refresh the display
+        } catch (error) {
+            console.error('Error approving user:', error);
+            this.showErrorMessage('Failed to approve user');
+        }
+    }
+
+    showRejectUserModal(userId) {
+        const reason = prompt('Please provide a reason for rejection (optional):');
+        if (reason !== null) { // User didn't cancel
+            this.rejectUser(userId, reason);
+        }
+    }
+
+    async rejectUser(userId, reason = '') {
+        try {
+            await window.FirebaseConfig.firestoreService.rejectUser(userId, reason);
+            this.showSuccessMessage('User rejected');
+            this.loadUsersData(); // Refresh the display
+        } catch (error) {
+            console.error('Error rejecting user:', error);
+            this.showErrorMessage('Failed to reject user');
+        }
     }
 
     cleanup() {

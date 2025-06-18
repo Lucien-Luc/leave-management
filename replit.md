@@ -20,9 +20,10 @@ This is a comprehensive HR Leave Management System built as a web application th
 - **File Storage**: Firebase Storage (configured but not actively used)
 
 ### External Integrations
-- **AI Assistant**: OpenAI API integration for intelligent HR chatbot
+- **AI Assistant**: Hugging Face Inference API for intelligent HR chatbot (free tier)
 - **Authentication**: Google OAuth for secure user authentication
 - **Demo Mode**: Built-in demo users for testing and development
+- **User Management**: Production-ready employee account creation with HR approval workflow
 
 ## Key Components
 
@@ -44,12 +45,12 @@ This is a comprehensive HR Leave Management System built as a web application th
 ### 4. AI Chatbot (`ai-chatbot.js`)
 - **Purpose**: Intelligent assistance for HR-related queries
 - **Features**: Natural language processing, context-aware responses, integration with leave data
-- **Architecture Decision**: OpenAI API integration for advanced conversational capabilities
+- **Architecture Decision**: Hugging Face Inference API integration for free AI capabilities with fallback to rule-based system
 
 ### 5. Main Application Controller (`script.js`)
 - **Purpose**: Central app orchestration and navigation management
-- **Features**: View switching, authentication state management, component initialization
-- **Architecture Decision**: Single controller pattern for simplified state management
+- **Features**: View switching, authentication state management, component initialization, user management system
+- **Architecture Decision**: Single controller pattern for simplified state management with production-ready user approval workflow
 
 ### 6. Utility Functions (`utils.js`)
 - **Purpose**: Common helper functions and data manipulation utilities
