@@ -590,9 +590,15 @@ class HRLeaveApp {
 // Initialize the application
 let app;
 document.addEventListener('DOMContentLoaded', () => {
+    // Initialize global components
+    window.leaveManager = new LeaveManager();
+    window.calendarManager = new CalendarManager();
+    window.aiChatbot = new AIChatbot();
+    
+    // Initialize main app
     app = new HRLeaveApp();
     
-    // Make app globally available
+    // Make globally available
     window.app = app;
 });
 

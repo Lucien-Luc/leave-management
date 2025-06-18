@@ -3,11 +3,11 @@
 
 class AIChatbot {
     constructor() {
-        this.apiKey = 'demo-openai-key'; // Will be replaced with actual API key from environment
         this.isOpen = false;
         this.messages = [];
         this.currentUser = null;
         this.isTyping = false;
+        this.knowledgeBase = this.initializeKnowledgeBase();
         
         this.init();
         this.setupEventListeners();
@@ -138,13 +138,11 @@ class AIChatbot {
             }
         }
 
-        // Prepare context for AI
+        // Prepare context for intelligent response
         const context = this.buildContext(user, userRole, leaveBalance);
-        const prompt = this.buildPrompt(userMessage, context);
-
-        // For demo purposes, return a simulated response
-        // In production, this would call the actual OpenAI API
-        return this.getSimulatedResponse(userMessage, context);
+        
+        // Use advanced rule-based AI system
+        return this.getIntelligentResponse(userMessage, context);
     }
 
     buildContext(user, userRole, leaveBalance) {
@@ -207,9 +205,92 @@ Provide a helpful, professional, and accurate response about leave policies, pro
 Response:`;
     }
 
-    // Simulated AI responses for demo purposes
-    getSimulatedResponse(userMessage, context) {
+    // Initialize comprehensive knowledge base for intelligent responses
+    initializeKnowledgeBase() {
+        return {
+            greetings: ['hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening'],
+            farewells: ['bye', 'goodbye', 'see you', 'thank you', 'thanks'],
+            
+            leaveTypes: {
+                vacation: {
+                    name: 'Vacation Leave',
+                    annual: 25,
+                    advanceNotice: 30,
+                    description: 'Planned time off for rest and recreation'
+                },
+                sick: {
+                    name: 'Sick Leave',
+                    annual: 10,
+                    doctorNote: 3,
+                    description: 'Time off for illness or medical appointments'
+                },
+                personal: {
+                    name: 'Personal Leave',
+                    annual: 5,
+                    advanceNotice: 24,
+                    description: 'Personal matters that require time off'
+                },
+                maternity: {
+                    name: 'Maternity/Paternity Leave',
+                    duration: 90,
+                    advanceNotice: 60,
+                    description: 'Leave for new parents'
+                },
+                emergency: {
+                    name: 'Emergency Leave',
+                    annual: 3,
+                    advanceNotice: 0,
+                    description: 'Immediate time off for emergencies'
+                }
+            },
+            
+            processes: {
+                request: [
+                    'Click the "Request Leave" button in your dashboard',
+                    'Select the type of leave you need',
+                    'Choose your start and end dates',
+                    'Add a reason if required',
+                    'Submit for HR approval'
+                ],
+                approval: [
+                    'Your request is automatically sent to HR',
+                    'HR reviews within 2-3 business days',
+                    'You receive a notification with the decision',
+                    'Approved leave appears on the calendar'
+                ]
+            },
+            
+            tips: {
+                planning: [
+                    'Book vacation 30 days in advance when possible',
+                    'Check team calendar for conflicts',
+                    'Consider peak business periods',
+                    'Plan around project deadlines'
+                ],
+                emergency: [
+                    'Contact your manager immediately',
+                    'Submit the request as soon as possible',
+                    'Provide documentation when you return'
+                ]
+            }
+        };
+    }
+
+    // Advanced intelligent response system
+    getIntelligentResponse(userMessage, context) {
         const message = userMessage.toLowerCase();
+        const kb = this.knowledgeBase;
+        
+        // Handle greetings
+        if (kb.greetings.some(greeting => message.includes(greeting))) {
+            const userName = context.user ? context.user.name.split(' ')[0] : '';
+            return `Hello ${userName}! I'm your HR assistant. I can help you with leave policies, check your balance, guide you through requests, and answer any HR questions. What would you like to know?`;
+        }
+        
+        // Handle farewells
+        if (kb.farewells.some(farewell => message.includes(farewell))) {
+            return `You're welcome! Feel free to ask me anything about leave policies or HR procedures anytime. Have a great day!`;
+        }
         
         // Leave balance queries
         if (message.includes('balance') || message.includes('days left') || message.includes('remaining')) {
@@ -219,15 +300,15 @@ Response:`;
                 const availableSick = balance.sick - (balance.used?.sick || 0);
                 const availablePersonal = balance.personal - (balance.used?.personal || 0);
                 
-                return `Here's your current leave balance:
-                
-📅 **Vacation Days**: ${availableVacation} of ${balance.vacation} remaining
-🏥 **Sick Leave**: ${availableSick} of ${balance.sick} remaining  
-👤 **Personal Days**: ${availablePersonal} of ${balance.personal} remaining
+                return `**Your Current Leave Balance:**
 
-Would you like to know about any specific leave type or need help planning your time off?`;
+**Vacation Days**: ${availableVacation} of ${balance.vacation} remaining
+**Sick Leave**: ${availableSick} of ${balance.sick} remaining  
+**Personal Days**: ${availablePersonal} of ${balance.personal} remaining
+
+Need help planning your time off or have questions about any specific leave type?`;
             } else {
-                return `I'd be happy to help you check your leave balance! However, I need to access your account information first. Please make sure you're logged in, and I'll retrieve your current balance.`;
+                return `I'd be happy to help you check your leave balance! Please make sure you're logged in so I can access your account information and retrieve your current balance.`;
             }
         }
         
