@@ -121,9 +121,23 @@ class HRLeaveApp {
             this.handleResize();
         });
 
-        // User management refresh button
+        // User management
         document.getElementById('refresh-users')?.addEventListener('click', () => {
             this.loadUsersData();
+        });
+
+        document.getElementById('create-employee-btn')?.addEventListener('click', () => {
+            this.showModal('create-employee-modal');
+        });
+
+        document.getElementById('create-employee-form')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.handleCreateEmployee(e);
+        });
+
+        document.getElementById('reject-user-form')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.handleRejectUser(e);
         });
     }
 
@@ -883,20 +897,22 @@ class HRLeaveApp {
     }
 
     showRejectUserModal(userId) {
-        const reason = prompt('Please provide a reason for rejection (optional):');
-        if (reason !== null) { // User didn't cancel
-            this.rejectUser(userId, reason);
-        }
+        const modal = document.getElementById('reject-user-modal');
+        const form = document.getElementById('reject-user-form');
+        form.dataset.userId = userId;
+        this.showModal('reject-user-modal');
     }
 
-    async rejectUser(userId, reason = '') {
-        try {
-            await window.FirebaseConfig.firestoreService.rejectUser(userId, reason);
-            this.showSuccessMessage('User rejected');
-            this.loadUsersData(); // Refresh the display
-        } catch (error) {
-            console.error('Error rejecting user:', error);
-            this.showErrorMessage('Failed to reject user');
+    async deactivateUser(userId) {
+        if (confirm('Are you sure you want to deactivate this user? This will cancel all their pending leave requests.')) {
+            try {
+                await window.FirebaseConfig.firestoreService.deleteEmployee(userId);
+                this.showSuccessMessage('User deactivated successfully');
+                this.loadUsersData();
+            } catch (error) {
+                console.error('Error deactivating user:', error);
+                this.showErrorMessage('Failed to deactivate user');
+            }
         }
     }
 
@@ -912,6 +928,58 @@ class HRLeaveApp {
 
         if (window.aiChatbot) {
             window.aiChatbot.clearChat();
+        }
+    }
+
+    // HR User Management Methods
+    async handleCreateEmployee(event) {
+        const form = event.target;
+        const name = document.getElementById('new-employee-name').value;
+        const email = document.getElementById('new-employee-email').value;
+        const department = document.getElementById('new-employee-department').value;
+        const position = document.getElementById('new-employee-position').value;
+
+        try {
+            const submitBtn = form.querySelector('.submit-btn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Creating Employee...';
+
+            const employeeData = {
+                displayName: name,
+                email: email,
+                department: department,
+                position: position
+            };
+
+            await window.FirebaseConfig.firestoreService.createEmployeeByHR(employeeData);
+            
+            this.hideModal('create-employee-modal');
+            this.showSuccessMessage(`Employee ${name} created successfully!`);
+            form.reset();
+            await this.loadUsersData();
+        } catch (error) {
+            console.error('Error creating employee:', error);
+            this.showErrorMessage(error.message || 'Failed to create employee.');
+        } finally {
+            const submitBtn = form.querySelector('.submit-btn');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Create Employee';
+        }
+    }
+
+    async handleRejectUser(event) {
+        const form = event.target;
+        const reason = document.getElementById('rejection-reason').value;
+        const userId = form.dataset.userId;
+
+        try {
+            await window.FirebaseConfig.firestoreService.rejectUser(userId, reason);
+            this.hideModal('reject-user-modal');
+            this.showSuccessMessage('User account rejected.');
+            await this.loadUsersData();
+        } catch (error) {
+            console.error('Error rejecting user:', error);
+            this.showErrorMessage('Failed to reject user account.');
         }
     }
 

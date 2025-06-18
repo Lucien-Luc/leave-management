@@ -438,6 +438,10 @@
                 <div class="view-header">
                     <h2>User Management</h2>
                     <div class="view-actions">
+                        <button class="btn btn-primary" id="create-employee-btn">
+                            <i class="fas fa-user-plus"></i>
+                            Create Employee
+                        </button>
                         <button class="btn btn-secondary" id="refresh-users">
                             <i class="fas fa-sync"></i>
                             Refresh
@@ -489,6 +493,67 @@
     </div>
 
     <!-- Modals -->
+    <!-- Create Employee Modal -->
+    <div id="create-employee-modal" class="auth-modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Create New Employee</h3>
+                <button class="close-modal" data-modal="create-employee-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="create-employee-form">
+                    <div class="form-group">
+                        <label for="new-employee-name">Full Name</label>
+                        <input type="text" id="new-employee-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="new-employee-email">Email Address</label>
+                        <input type="email" id="new-employee-email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="new-employee-department">Department</label>
+                        <select id="new-employee-department" required>
+                            <option value="">Select Department</option>
+                            <option value="Engineering">Engineering</option>
+                            <option value="Marketing">Marketing</option>
+                            <option value="Sales">Sales</option>
+                            <option value="Finance">Finance</option>
+                            <option value="Operations">Operations</option>
+                            <option value="General">General</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="new-employee-position">Position</label>
+                        <input type="text" id="new-employee-position" placeholder="e.g., Software Engineer">
+                    </div>
+                    <button type="submit" class="submit-btn">Create Employee</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reject User Modal -->
+    <div id="reject-user-modal" class="auth-modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Reject User Account</h3>
+                <button class="close-modal" data-modal="reject-user-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="reject-user-form">
+                    <div class="form-group">
+                        <label for="rejection-reason">Reason for rejection (optional)</label>
+                        <textarea id="rejection-reason" rows="3" placeholder="Provide a reason for the rejection..."></textarea>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary close-modal" data-modal="reject-user-modal">Cancel</button>
+                        <button type="submit" class="submit-btn" style="background: var(--error-color);">Reject User</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- New Leave Request Modal -->
     <div id="leave-request-modal" class="modal">
         <div class="modal-content">
